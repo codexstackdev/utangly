@@ -2,29 +2,55 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wallet, Mail, Lock, User, ArrowRight, Eye, EyeClosed} from 'lucide-react';
-import { register } from './hooks/actions';
+import { login, register } from './hooks/actions';
 import { toast } from 'sonner';
+import { Spinner } from '@/components/ui/spinner';
+import { useRouter } from 'next/navigation';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isHide, setHide] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [registerData, setRegister] = useState({
     fullName: "",
     email: "",
     password: ""
   });
+  const [loginData, setLogin] = useState({
+    email: "",
+    password: "",
+  });
+  const router = useRouter();
 
   const handleRegisterChange = (e: React.ChangeEvent<HTMLInputElement>)=>{
     const { name, value } = e.target;
     setRegister((prev) => ({...prev, [name]: value}))
   }
 
-  const handleSubmit = async()=> {
+  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>)=>{
+    const { name, value } = e.target;
+    setLogin((prev) => ({...prev, [name]: value}));
+  }
+
+  const handleSubmit = async(e:React.SubmitEvent)=> {
+    e.preventDefault();
+    setLoading(true);
     try {
       if(!isLogin){
       const data = await register(registerData.fullName, registerData.email, registerData.password);
       if(data.success){
         toast.success(data.message);
+        setIsLogin(true);
+      }
+      else{
+        toast.error(data.message);
+      }
+    }
+    else{
+      const data = await login(loginData.email, loginData.password);
+      if(data.success){
+        toast.success(data.message);
+        router.push(`/utangly/${data.auth}`);
       }
       else{
         toast.error(data.message);
@@ -32,6 +58,9 @@ const AuthPage = () => {
     }
     } catch (error) {
       console.error(error);
+    }
+    finally{
+      setLoading(false);
     }
   }
 
@@ -61,13 +90,16 @@ const AuthPage = () => {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <form  className="space-y-4" onSubmit={(e) => handleSubmit(e)}>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Email</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                     <input 
-                      type="email" 
+                      type="email"
+                      name='email'
+                      value={loginData.email}
+                      onChange={handleLoginChange}
                       required
                       placeholder="name@example.com"
                       className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-transparent rounded-xl focus:bg-background focus:border-primary/50 transition-all outline-none text-sm"
@@ -82,16 +114,19 @@ const AuthPage = () => {
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                     <input 
-                      type="password" 
+                      type="password"
+                      name='password'
+                      value={loginData.password}
+                      onChange={handleLoginChange}
                       placeholder="••••••••"
                       className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-transparent rounded-xl focus:bg-background focus:border-primary/50 transition-all outline-none text-sm"
                     />
                   </div>
                 </div>
 
-                <button className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-bold hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2">
-                  <span>Sign In</span>
-                  <ArrowRight size={18} />
+                <button disabled={loading} className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-bold hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2">
+                  <span>{loading ? "Signing In" : "Sign In"}</span>
+                  {loading ? <Spinner className='size-4'/> : <ArrowRight size={18} />}
                 </button>
               </form>
 
@@ -117,7 +152,7 @@ const AuthPage = () => {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <form className="space-y-4" onSubmit={(e) => handleSubmit(e)}>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Full Name</label>
                   <div className="relative">
@@ -140,7 +175,7 @@ const AuthPage = () => {
                     <input 
                       type="email"
                       name="email"
-                      required
+                      required={true}
                       value={registerData.email}
                       onChange={handleRegisterChange}
                       placeholder="name@example.com"
@@ -165,9 +200,9 @@ const AuthPage = () => {
                   </div>
                 </div>
 
-                <button onClick={handleSubmit} className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-bold hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2">
-                  <span>Create Account</span>
-                  <ArrowRight size={18} />
+                <button disabled={loading} className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-bold hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2">
+                  <span>{loading ? "Creating your account" : "Create Account"}</span>
+                  {loading ? <Spinner className='size-4'/> : <ArrowRight size={18} />}
                 </button>
               </form>
 

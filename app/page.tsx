@@ -11,6 +11,7 @@ const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isHide, setHide] = useState(true);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const [registerData, setRegister] = useState({
     fullName: "",
     email: "",
@@ -20,7 +21,6 @@ const AuthPage = () => {
     email: "",
     password: "",
   });
-  const router = useRouter();
 
   const handleRegisterChange = (e: React.ChangeEvent<HTMLInputElement>)=>{
     const { name, value } = e.target;

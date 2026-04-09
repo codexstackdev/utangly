@@ -38,4 +38,65 @@ export async function login(email:string, password:string){
         return { success: false, message: handleError(error)}
     }
 }
+
+export async function logout(){
+    try {
+        const req = await fetch("/api/v1/auth/logout", {
+            method: "POST",
+            headers,
+        });
+        const data = await req.json();
+        if(!data.success) return { success: false, message: data.message}
+        return data;
+    } catch (error) {
+        return { success: false, message: handleError(error)}
+    }
+}
+
+export async function getUser(userId:string){
+    try {
+        const req = await fetch(`/api/v1/util/user?id=${userId}`, {
+            method: "GET",
+            headers,
+        });
+        const data = await req.json();
+        if(!data.success) return { success: false, message: data.message}
+        return data;
+    } catch (error) {
+        return { success: false, message: handleError(error)}
+    }
+}
 //end of auth
+
+//functionalities
+
+export async function addItem(item:string, price: number, userId:string, qty?:number){
+    try {
+        const req = await fetch("/api/v1/util/items", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({item, qty, price, userId})
+        });
+        const data = await req.json();
+        if(!data.success) return { success: false, message: data.message}
+        return data;
+    } catch (error) {
+        return { success: false, message: handleError(error)}
+    }
+}
+
+export async function deleteItem(itemId:string, userId:string){
+    try {
+        const req = await fetch(`/api/v1/util/items?id=${itemId}&userId=${userId}`, {
+            method: "DELETE",
+            headers
+        });
+        const data = await req.json();
+        if(!data.success) return { success: false, message: data.message}
+        return data;
+    } catch (error) {
+        return { success: false, message: handleError(error)}
+    }
+}
+
+//end of functionalities

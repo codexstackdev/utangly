@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     const { payload } = await jwtVerify(token as string, secret);
     if(payload.userId !== userId) return NextResponse.json({success: false, message: "Mango mango simo nga gago ka"}, {status: 401});
     await connectDB();
-    const user = await userModel.findById(userId).select("-password -email").populate("items", "itemName quantity price");
+    const user = await userModel.findById(userId).select("-password -email").populate("items", "itemName quantity price createdAt").populate("debtors", "fullName totalDebt items");
     return NextResponse.json({success: true, user});
   } catch (error) {
     const err = error instanceof Error ? error.message : "Server Unreachable";

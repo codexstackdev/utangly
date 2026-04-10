@@ -5,7 +5,8 @@ const userSchema = new mongoose.Schema({
     fullName: {type:String, required: true},
     email: {type:String, required: true},
     password: {type:String, required: true},
-    items: [{type: mongoose.Schema.Types.ObjectId, default: [], ref: "items"}]
+    items: [{type: mongoose.Schema.Types.ObjectId, default: [], ref: "items"}],
+    debtors: [{type:mongoose.Schema.Types.ObjectId, default: [], ref:"debtors"}],
 }, {timestamps: true});
 
 

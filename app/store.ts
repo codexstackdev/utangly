@@ -12,7 +12,8 @@ type ItemProps = {
 type DebtorsProps = {
   fullName:string,
   totalDebt:number,
-  items: ItemProps[]
+  items: ItemProps[],
+  _id:string;
 }
 
 type User = {

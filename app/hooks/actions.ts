@@ -157,4 +157,25 @@ export async function addDebtor(
   }
 }
 
+export async function payDebt(
+  payBy:string,
+  amount:number,
+  totalDebt:number,
+  userId:string,
+  debtorId:string,
+) {
+  try {
+    const req = await fetch("/api/v1/util/payments", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ payBy, amount, totalDebt, userId, debtorId }),
+    });
+    const data = await req.json();
+    if (!data.success) return { success: false, message: data.message };
+    return data;
+  } catch (error) {
+    return { success: false, message: handleError(error) };
+  }
+}
+
 //end of functionalities

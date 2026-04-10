@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 const debtorSchema = new mongoose.Schema({
     fullName: {type:String, required: true},
     totalDebt: {type:Number, default: 0},
+    status: {type:String, enum: ["paid", "not paid"], default: "not paid"},
     items: [{
         itemName: {type:String, required: true},
         quantity: {type: Number, required: true},

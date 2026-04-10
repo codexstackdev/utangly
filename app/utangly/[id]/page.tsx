@@ -21,7 +21,7 @@ import {
   Minus,
   Boxes,
 } from "lucide-react";
-import { addDebtor, addItem, getUser, logout } from "@/app/hooks/actions";
+import { addDebtor, addItem, getUser, logout, payDebt } from "@/app/hooks/actions";
 import { toast } from "sonner";
 import { useParams, useRouter } from "next/navigation";
 import { setUserStore } from "@/app/store";
@@ -200,6 +200,13 @@ const UtangManagementPage = () => {
   const handlePayment = async()=>{
     try {
       if(paymentData.amount > selectedUser.totalDebt) return toast.error("Payment exceeded debt");
+      const data = await payDebt(paymentData.payBy || selectedUser.fullName, paymentData.amount, selectedUser.totalDebt, userId, selectedUser._id);
+      if(data.success){
+        toast.success(data.message);
+      }
+      else{
+        toast.error(data.message);
+      }
     } catch (error) {
       console.error(error);
     }
@@ -214,7 +221,6 @@ const UtangManagementPage = () => {
       if (b.createdAt > a.createdAt) return 1;
       return 0;
     });
-  console.log(selectedItem);
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col lg:flex-row overflow-x-hidden">
       {/* MOBILE HEADER */}
@@ -786,9 +792,6 @@ const PersonCard = ({
       <div className="flex items-center gap-1">
         <button className="p-2.5 rounded-xl hover:bg-secondary transition-colors text-muted-foreground">
           <Edit2 size={18} />
-        </button>
-        <button className="p-2.5 rounded-xl hover:bg-rose-500/10 transition-colors text-rose-500">
-          <Trash2 size={18} />
         </button>
       </div>
     </div>

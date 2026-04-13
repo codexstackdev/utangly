@@ -8,19 +8,27 @@ type ItemProps = {
   _id: string;
   createdAt: string;
 };
+type HistoryProps = {
+  payBy: string;
+  amountPaid: number;
+  createdAt: string;
+}
 
 type DebtorsProps = {
-  fullName:string,
-  totalDebt:number,
-  items: ItemProps[],
-  _id:string;
-}
+  fullName: string;
+  totalDebt: number;
+  items: ItemProps[];
+  history: HistoryProps[];
+  _id: string;
+  status: "paid" | "not paid";
+  createdAt:string;
+};
 
 type User = {
   fullName: string;
   items: ItemProps[];
-  debtors: DebtorsProps[],
-}
+  debtors: DebtorsProps[];
+};
 
 type ItemDataProps = {
   price: number;
@@ -34,6 +42,7 @@ type SetStore = {
   addItem: (newItem: ItemProps) => void;
   editItem: (editItem: ItemDataProps) => void;
   removeItem: (removeItem: string) => void;
+  updateTotalDebt: (updateDebtor: DebtorsProps) => void;
   clearUser: () => void;
 };
 
@@ -65,6 +74,7 @@ export const setUserStore = create<SetStore>()(
               }
             : null,
         })),
+
       removeItem: (removeItem) =>
         set((state) => ({
           user: state.user
@@ -76,6 +86,25 @@ export const setUserStore = create<SetStore>()(
               }
             : null,
         })),
+
+      updateTotalDebt: (updateDebtor) => {
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                debtors: state.user.debtors.map((debt) =>
+                  debt._id === updateDebtor._id
+                    ? {
+                        ...debt,
+                        totalDebt: debt.totalDebt - updateDebtor.totalDebt,
+                      }
+                    : debt,
+                ),
+              }
+            : null,
+        }));
+      },
+
       clearUser: () => set({ user: null }),
     }),
     {

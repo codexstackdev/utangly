@@ -39,6 +39,10 @@ export async function POST(req: NextRequest) {
       if(!debtor || !updateDebtorStatus) return NextResponse.json({success: false, message: "Something went wrong"}, {status: 400});
     const history = new historyModel({payBy, amountPaid:amount, issuedBy:userId});
     await history.save();
+    const savetoDebtorHistory = await debtorModel.findByIdAndUpdate(debtorId, {
+      $push: {history: history._id}
+    }, {returnDocument: "after"});
+    if(!savetoDebtorHistory) return NextResponse.json({success: false, message: "Something went wrong"}, {status: 400});
     return NextResponse.json({success: true, message: "Transaction Completed Successfully." });
   } catch (error) {
     const err = error instanceof Error ? error.message : "Server Unreachable";

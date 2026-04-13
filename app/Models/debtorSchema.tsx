@@ -13,6 +13,7 @@ const debtorSchema = new mongoose.Schema({
         _id: {type:String, required: true},
         createdAt: {type:String, required: true}
     }],
+    history: [{type:mongoose.Schema.Types.ObjectId, default: [], ref: "historys"}]
 }, {timestamps: true});
 
 

@@ -21,12 +21,19 @@ import {
   Minus,
   Boxes,
 } from "lucide-react";
-import { addDebtor, addItem, getUser, logout, payDebt } from "@/app/hooks/actions";
+import {
+  addDebtor,
+  addItem,
+  getUser,
+  logout,
+  payDebt,
+} from "@/app/hooks/actions";
 import { toast } from "sonner";
 import { useParams, useRouter } from "next/navigation";
 import { setUserStore } from "@/app/store";
 import { Spinner } from "@/components/ui/spinner";
 import ItemCard from "@/app/Components/ItemCard";
+import { PersonCard } from "@/app/Components/PersonCard";
 
 /**
  * UTANG MANAGEMENT PAGE (INVENTORY & DEBT TRACKER)
@@ -38,6 +45,12 @@ import ItemCard from "@/app/Components/ItemCard";
  * - Theme-Aware UI: Full support for light and dark modes.
  */
 
+type HistoryProps = {
+  payBy: string;
+  amountPaid: number;
+  createdAt: string;
+}
+
 type ItemProps = {
   itemName: string;
   quantity: number;
@@ -46,24 +59,15 @@ type ItemProps = {
   createdAt: string;
 };
 
-const placeholderUsers = [
-  {
-    name: "Zyrill Lewis",
-    totalDebt: 250,
-    items: [
-      { name: "Sardines", qty: 2, price: 120 },
-      { name: "Cheeze whiz", qty: 4, price: 12 },
-    ],
-  },
-  {
-    name: "John Doe",
-    totalDebt: 85,
-    items: [
-      { name: "Mineral Water", qty: 1, price: 25 },
-      { name: "Rice (1kg)", qty: 1, price: 60 },
-    ],
-  },
-];
+type DebtorsProps = {
+  fullName: string;
+  totalDebt: number;
+  items: ItemProps[];
+  history: HistoryProps[];
+  _id: string;
+  status: "paid" | "not paid";
+  createdAt: string;
+};
 
 const UtangManagementPage = () => {
   const params = useParams();
@@ -72,6 +76,7 @@ const UtangManagementPage = () => {
   const setUser = setUserStore((s) => s.setUser);
   const setItem = setUserStore((s) => s.addItem);
   const clearUser = setUserStore((s) => s.clearUser);
+  const updateDebt = setUserStore((s) => s.updateTotalDebt);
   const [loading, setLoading] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [itemQuantities, setItemQuantities] = useState<Record<string, number>>(
@@ -87,9 +92,12 @@ const UtangManagementPage = () => {
   const router = useRouter();
   const [debtorData, setDebtorData] = useState({
     fullName: "",
-    totalDebt: selectedItem.reduce((acc, item) => acc + (item.price * item.quantity), 0),
+    totalDebt: selectedItem.reduce(
+      (acc, item) => acc + item.price * item.quantity,
+      0,
+    ),
     item: selectedItem,
-  })
+  });
   const [itemData, setItemData] = useState({
     item: "",
     qty: 0,
@@ -97,7 +105,7 @@ const UtangManagementPage = () => {
   });
   const [paymentData, setPaymentData] = useState({
     payBy: "",
-    amount: 0 
+    amount: 0,
   });
 
   useEffect(() => {
@@ -123,10 +131,10 @@ const UtangManagementPage = () => {
     setDebtorData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePaymentChange = (e: React.ChangeEvent<HTMLInputElement>)=>{
+  const handlePaymentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setPaymentData((prev) => ({...prev, [name]:value}));
-  }
+    setPaymentData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const closeModal = () => {
     setActiveModal(null);
@@ -185,32 +193,58 @@ const UtangManagementPage = () => {
 
   const handleAddDebtors = async () => {
     try {
-      const data = await addDebtor(debtorData.fullName, selectedItem, userId, selectedItem.reduce((acc, item) => acc + (item.price * item.quantity), 0));
-      if(data.success){
+      const data = await addDebtor(
+        debtorData.fullName,
+        selectedItem,
+        userId,
+        selectedItem.reduce((acc, item) => acc + item.price * item.quantity, 0),
+      );
+      if (data.success) {
         toast.success(data.message);
-      }
-      else{
-        toast.error(data.message)
+      } else {
+        toast.error(data.message);
       }
     } catch (error) {
       console.log(error);
     }
   };
 
-  const handlePayment = async()=>{
+  const handlePayment = async () => {
+    setLoading(true);
     try {
-      if(paymentData.amount > selectedUser.totalDebt) return toast.error("Payment exceeded debt");
-      const data = await payDebt(paymentData.payBy || selectedUser.fullName, paymentData.amount, selectedUser.totalDebt, userId, selectedUser._id);
-      if(data.success){
+      if (paymentData.amount <= 0) return toast.error("No amount was entered");
+      if (paymentData.amount > selectedUser.totalDebt)
+        return toast.error("Payment exceeded debt");
+      const data = await payDebt(
+        paymentData.payBy || selectedUser.fullName,
+        paymentData.amount,
+        selectedUser.totalDebt,
+        userId,
+        selectedUser._id,
+      );
+      if (data.success) {
         toast.success(data.message);
-      }
-      else{
+        const updateTotalDebt: DebtorsProps = {
+          fullName: selectedUser.fullName,
+          totalDebt: paymentData.amount,
+          _id: selectedUser._id,
+          items: selectedUser.items,
+          history: selectedUser.history,
+          status: selectedUser.status,
+          createdAt: new Date().toISOString()
+        };
+        updateDebt(updateTotalDebt);
+        setPaymentData((prev) => ({ ...prev, amount: 0 }));
+        setActiveModal(null);
+      } else {
         toast.error(data.message);
       }
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   const searchItem = user?.items
     .filter((item) =>
@@ -332,12 +366,18 @@ const UtangManagementPage = () => {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
-          {user?.debtors.map((user, idx) => (
+          {user?.debtors.sort((a, b) => {
+            if(b.createdAt < a.createdAt) return -1;
+            if(b.createdAt > a.createdAt) return 1;
+            return 0
+          }).map((user, idx) => (
             <PersonCard
               key={idx}
               name={user.fullName}
               totalDebt={user.totalDebt}
               items={user.items}
+              history={user.history}
+              status={user.totalDebt === 0 ? "paid" : "not paid"}
               onPay={() => {
                 setSelectedUser(user);
                 setActiveModal("payment");
@@ -455,8 +495,22 @@ const UtangManagementPage = () => {
                           />
                         </div>
                       </div>
-                      <button onClick={handlePayment} className="w-full bg-emerald-600 text-white py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3">
-                        <CheckCircle2 size={24} /> <span>Confirm Payment</span>
+                      <button
+                        onClick={handlePayment}
+                        disabled={loading}
+                        className="w-full bg-emerald-600 text-white py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3"
+                      >
+                        {loading ? (
+                          <>
+                            <Spinner className="size-5" />{" "}
+                            <span>Processing payment</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 size={24} />{" "}
+                            <span>Confirm Payment</span>
+                          </>
+                        )}
                       </button>
                     </>
                   )}
@@ -667,7 +721,10 @@ const UtangManagementPage = () => {
                           </div>
                         </div>
                       </div>
-                      <button onClick={handleAddDebtors} className="w-full bg-primary text-primary-foreground py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+                      <button
+                        onClick={handleAddDebtors}
+                        className="w-full bg-primary text-primary-foreground py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                      >
                         <UserPlus size={24} /> <span>Create Person</span>
                       </button>
                     </>
@@ -760,98 +817,4 @@ const UtangManagementPage = () => {
     </div>
   );
 };
-
-const PersonCard = ({
-  name,
-  totalDebt,
-  items,
-  onPay,
-}: {
-  name: string;
-  totalDebt: number;
-  items: any[];
-  onPay: () => void;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="bg-card border border-border rounded-[2.5rem] overflow-hidden shadow-sm flex flex-col h-full hover:shadow-md transition-shadow"
-  >
-    <div className="p-6 border-b border-border flex items-center justify-between bg-secondary/10">
-      <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl shadow-lg shadow-primary/10">
-          {name.charAt(0)}
-        </div>
-        <div>
-          <h3 className="font-bold text-lg leading-none">{name}</h3>
-          <p className="text-rose-500 font-bold text-sm mt-1.5">
-            ₱{totalDebt.toFixed(2)}
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-1">
-        <button className="p-2.5 rounded-xl hover:bg-secondary transition-colors text-muted-foreground">
-          <Edit2 size={18} />
-        </button>
-      </div>
-    </div>
-
-    <div className="p-6 flex-1">
-      <div className="flex items-center justify-between mb-6">
-        <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          Current Dues
-        </h4>
-        <button className="text-xs font-bold text-primary flex items-center gap-1.5 hover:underline bg-primary/5 px-3 py-1.5 rounded-full">
-          <Plus size={14} /> Add Item
-        </button>
-      </div>
-      <div className="space-y-4">
-        {items.map((item, i) => (
-          <div key={i} className="flex items-center justify-between group/item">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-xs font-bold border border-border/50">
-                {item.quantity}x
-              </div>
-              <p className="text-sm font-semibold">{item.itemName}</p>
-            </div>
-            <p className="text-sm font-bold">₱{item.price}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-
-    <div className="p-5 bg-secondary/5 border-t border-border flex gap-3">
-      <button
-        onClick={onPay}
-        className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-emerald-600/10"
-      >
-        <CreditCard size={18} />
-        <span>Pay Debt</span>
-      </button>
-      <button className="p-4 rounded-2xl border border-border bg-card hover:bg-secondary transition-colors text-muted-foreground active:scale-[0.98]">
-        <History size={20} />
-      </button>
-    </div>
-  </motion.div>
-);
-
-const History = ({ size, className }: any) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-    <path d="M3 3v5h5" />
-    <path d="M12 7v5l4 2" />
-  </svg>
-);
-
 export default UtangManagementPage;

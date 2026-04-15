@@ -77,6 +77,8 @@ const UtangManagementPage = () => {
   const setItem = setUserStore((s) => s.addItem);
   const clearUser = setUserStore((s) => s.clearUser);
   const updateDebt = setUserStore((s) => s.updateTotalDebt);
+  const newDebtor = setUserStore((s) => s.addDebtor);
+  const updateHistory = setUserStore((s) => s.addHistory);
   const [loading, setLoading] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [itemQuantities, setItemQuantities] = useState<Record<string, number>>(
@@ -193,6 +195,7 @@ const UtangManagementPage = () => {
 
   const handleAddDebtors = async () => {
     try {
+      setLoading(true);
       const data = await addDebtor(
         debtorData.fullName,
         selectedItem,
@@ -200,12 +203,32 @@ const UtangManagementPage = () => {
         selectedItem.reduce((acc, item) => acc + item.price * item.quantity, 0),
       );
       if (data.success) {
+        const createDebtor:DebtorsProps = {
+          fullName: debtorData.fullName,
+          items: selectedItem,
+          totalDebt: selectedItem.reduce((acc, item) => acc + item.price * item.quantity, 0),
+          history: [],
+          status: "not paid",
+          _id: data.debtorId,
+          createdAt: new Date().toISOString(),
+        }
         toast.success(data.message);
+        setActiveModal(null);
+        setDebtorData({
+          fullName: "",
+          item: [],
+          totalDebt: 0
+        });
+        setSelectedItem([]);
+        newDebtor(createDebtor);
       } else {
         toast.error(data.message);
       }
     } catch (error) {
       console.log(error);
+    }
+    finally{
+      setLoading(false);
     }
   };
 
@@ -233,7 +256,13 @@ const UtangManagementPage = () => {
           status: selectedUser.status,
           createdAt: new Date().toISOString()
         };
+        const newHistory: HistoryProps ={
+          payBy: paymentData.payBy || selectedUser.fullName,
+          amountPaid: Number(paymentData.amount),
+          createdAt: new Date().toISOString(),
+        }
         updateDebt(updateTotalDebt);
+        updateHistory(newHistory, selectedUser._id)
         setPaymentData((prev) => ({ ...prev, amount: 0 }));
         setActiveModal(null);
       } else {
@@ -723,9 +752,10 @@ const UtangManagementPage = () => {
                       </div>
                       <button
                         onClick={handleAddDebtors}
+                        disabled={loading}
                         className="w-full bg-primary text-primary-foreground py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                       >
-                        <UserPlus size={24} /> <span>Create Person</span>
+                        {loading ? <><Spinner/> <span>Creating Debtor</span></> : <><UserPlus size={24} /> <span>Create Person</span></>}
                       </button>
                     </>
                   )}

@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
         {new:true}
       );
       return NextResponse.json(
-        { success: true, message: "Debtor added successfully" },
+        { success: true, message: "Debtor added successfully", debtorId: debtor._id},
         { status: 200 },
       );
     } else {
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
         {new:true}
       );
       return NextResponse.json(
-        { success: true, message: "Debtor added successfully" },
+        { success: true, message: "Debtor added successfully", debtorId: debtor._id},
         { status: 200 },
       );
     }

@@ -12,7 +12,8 @@ type HistoryProps = {
   payBy: string;
   amountPaid: number;
   createdAt: string;
-}
+  _id?: string;
+};
 
 type DebtorsProps = {
   fullName: string;
@@ -21,7 +22,7 @@ type DebtorsProps = {
   history: HistoryProps[];
   _id: string;
   status: "paid" | "not paid";
-  createdAt:string;
+  createdAt: string;
 };
 
 type User = {
@@ -43,6 +44,8 @@ type SetStore = {
   editItem: (editItem: ItemDataProps) => void;
   removeItem: (removeItem: string) => void;
   updateTotalDebt: (updateDebtor: DebtorsProps) => void;
+  addDebtor: (newDebtor: DebtorsProps) => void;
+  addHistory: (newHistory: HistoryProps, debtorId: string) => void;
   clearUser: () => void;
 };
 
@@ -70,6 +73,27 @@ export const setUserStore = create<SetStore>()(
                         quantity: editItem.quantity,
                       }
                     : item,
+                ),
+              }
+            : null,
+        })),
+
+      addDebtor: (newDebtor) =>
+        set((state) => ({
+          user: state.user
+            ? { ...state.user, debtors: [...state.user.debtors, newDebtor] }
+            : null,
+        })),
+
+      addHistory: (newHistory, debtorId) =>
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                debtors: state.user.debtors.map((debt) =>
+                  debt._id === debtorId
+                    ? { ...debt, history: [...debt.history, newHistory] }
+                    : debt,
                 ),
               }
             : null,

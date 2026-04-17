@@ -44,6 +44,7 @@ type SetStore = {
   editItem: (editItem: ItemDataProps) => void;
   removeItem: (removeItem: string) => void;
   updateTotalDebt: (updateDebtor: DebtorsProps) => void;
+  updateItemQuantity: (updateItem: ItemProps[]) => void;
   addDebtor: (newDebtor: DebtorsProps) => void;
   addHistory: (newHistory: HistoryProps, debtorId: string) => void;
   clearUser: () => void;
@@ -76,6 +77,18 @@ export const setUserStore = create<SetStore>()(
                 ),
               }
             : null,
+        })),
+
+      updateItemQuantity: (updateItem) =>
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                items: state.user.items.map((item) => {
+                  const match = updateItem.find((existing) => existing._id === item._id);
+                  return match ? {...item, quantity: item.quantity - match.quantity} : item
+                }),
+              } : null
         })),
 
       addDebtor: (newDebtor) =>
@@ -121,6 +134,7 @@ export const setUserStore = create<SetStore>()(
                     ? {
                         ...debt,
                         totalDebt: debt.totalDebt - updateDebtor.totalDebt,
+                        status: updateDebtor.status
                       }
                     : debt,
                 ),

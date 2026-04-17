@@ -3,11 +3,8 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
-  Trash2,
-  Edit2,
   UserPlus,
   Package,
-  CreditCard,
   Search,
   CheckCircle2,
   Menu,
@@ -49,7 +46,7 @@ type HistoryProps = {
   payBy: string;
   amountPaid: number;
   createdAt: string;
-}
+};
 
 type ItemProps = {
   itemName: string;
@@ -79,6 +76,7 @@ const UtangManagementPage = () => {
   const updateDebt = setUserStore((s) => s.updateTotalDebt);
   const newDebtor = setUserStore((s) => s.addDebtor);
   const updateHistory = setUserStore((s) => s.addHistory);
+  const editQuantity = setUserStore((s) => s.updateItemQuantity);
   const [loading, setLoading] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [itemQuantities, setItemQuantities] = useState<Record<string, number>>(
@@ -92,6 +90,11 @@ const UtangManagementPage = () => {
   const [selectedItem, setSelectedItem] = useState<ItemProps[]>([]);
   const [search, setSearch] = useState("");
   const router = useRouter();
+  const formatCurrency = new Intl.NumberFormat('en-US', {
+      style: "currency",
+      currency: "PHP",
+      trailingZeroDisplay: 'stripIfInteger'
+    });
   const [debtorData, setDebtorData] = useState({
     fullName: "",
     totalDebt: selectedItem.reduce(
@@ -203,21 +206,25 @@ const UtangManagementPage = () => {
         selectedItem.reduce((acc, item) => acc + item.price * item.quantity, 0),
       );
       if (data.success) {
-        const createDebtor:DebtorsProps = {
+        const createDebtor: DebtorsProps = {
           fullName: debtorData.fullName,
           items: selectedItem,
-          totalDebt: selectedItem.reduce((acc, item) => acc + item.price * item.quantity, 0),
+          totalDebt: selectedItem.reduce(
+            (acc, item) => acc + item.price * item.quantity,
+            0,
+          ),
           history: [],
           status: "not paid",
           _id: data.debtorId,
           createdAt: new Date().toISOString(),
-        }
+        };
         toast.success(data.message);
+        editQuantity(selectedItem);
         setActiveModal(null);
         setDebtorData({
           fullName: "",
           item: [],
-          totalDebt: 0
+          totalDebt: 0,
         });
         setSelectedItem([]);
         newDebtor(createDebtor);
@@ -226,8 +233,7 @@ const UtangManagementPage = () => {
       }
     } catch (error) {
       console.log(error);
-    }
-    finally{
+    } finally {
       setLoading(false);
     }
   };
@@ -247,22 +253,26 @@ const UtangManagementPage = () => {
       );
       if (data.success) {
         toast.success(data.message);
+        const statusCalculation =
+          selectedUser.totalDebt - paymentData.amount === 0
+            ? "paid"
+            : "not paid";
         const updateTotalDebt: DebtorsProps = {
           fullName: selectedUser.fullName,
           totalDebt: paymentData.amount,
           _id: selectedUser._id,
           items: selectedUser.items,
           history: selectedUser.history,
-          status: selectedUser.status,
-          createdAt: new Date().toISOString()
+          status: statusCalculation,
+          createdAt: new Date().toISOString(),
         };
-        const newHistory: HistoryProps ={
+        const newHistory: HistoryProps = {
           payBy: paymentData.payBy || selectedUser.fullName,
           amountPaid: Number(paymentData.amount),
           createdAt: new Date().toISOString(),
-        }
+        };
         updateDebt(updateTotalDebt);
-        updateHistory(newHistory, selectedUser._id)
+        updateHistory(newHistory, selectedUser._id);
         setPaymentData((prev) => ({ ...prev, amount: 0 }));
         setActiveModal(null);
       } else {
@@ -284,9 +294,9 @@ const UtangManagementPage = () => {
       if (b.createdAt > a.createdAt) return 1;
       return 0;
     });
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col lg:flex-row overflow-x-hidden">
-      {/* MOBILE HEADER */}
       <div className="lg:hidden sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-lg bg-primary/10 text-primary">
@@ -304,12 +314,11 @@ const UtangManagementPage = () => {
         </div>
       </div>
 
-      {/* SIDEBAR: ITEM CATALOG */}
       <aside
         className={`
-        fixed inset-y-0 left-0 z-50 w-80 bg-card border-r border-border transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:z-0
-        ${isCatalogOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"}
-      `}
+fixed inset-y-0 left-0 z-50 w-80 bg-card border-r border-border transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:z-0
+${isCatalogOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"}
+`}
       >
         <div className="h-full flex flex-col p-6 gap-6">
           <div className="flex items-center justify-between">
@@ -395,28 +404,36 @@ const UtangManagementPage = () => {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
-          {user?.debtors.sort((a, b) => {
-            if(b.createdAt < a.createdAt) return -1;
-            if(b.createdAt > a.createdAt) return 1;
-            return 0
-          }).map((user, idx) => (
-            <PersonCard
-              key={idx}
-              name={user.fullName}
-              totalDebt={user.totalDebt}
-              items={user.items}
-              history={user.history}
-              status={user.totalDebt === 0 ? "paid" : "not paid"}
-              onPay={() => {
-                setSelectedUser(user);
-                setActiveModal("payment");
-              }}
-            />
-          ))}
+          {user?.debtors
+            .sort((a, b) => {
+              if (a.status === "not paid" && b.status === "paid") return -1;
+              if (a.status === "paid" && b.status === "not paid") return 1;
+
+              if (b.createdAt < a.createdAt) return -1;
+              if (b.createdAt > a.createdAt) return 1;
+              return 0;
+            })
+            .map((user, idx) => (
+              <PersonCard
+                key={idx}
+                name={user.fullName}
+                totalDebt={user.totalDebt}
+                items={user.items}
+                history={user.history}
+                status={
+                  user.totalDebt === 0 && user.items.length !== 0
+                    ? "paid"
+                    : "not paid"
+                }
+                onPay={() => {
+                  setSelectedUser(user);
+                  setActiveModal("payment");
+                }}
+              />
+            ))}
         </div>
       </main>
 
-      {/* MODALS CONTAINER */}
       <AnimatePresence>
         {activeModal && (
           <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6">
@@ -435,7 +452,7 @@ const UtangManagementPage = () => {
               className="relative w-full max-w-md bg-card border border-border rounded-[2.5rem] shadow-2xl overflow-hidden"
             >
               <div className="p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
-                {/* Modal Header */}
+
                 <div className="flex justify-between items-start mb-8">
                   <div className="flex items-center gap-4">
                     <div
@@ -483,7 +500,7 @@ const UtangManagementPage = () => {
                           Current Balance
                         </p>
                         <p className="text-2xl font-black text-rose-500">
-                          ₱{selectedUser?.totalDebt}
+                          {formatCurrency.format(selectedUser?.totalDebt)}
                         </p>
                       </div>
                       <div className="space-y-3">
@@ -608,7 +625,7 @@ const UtangManagementPage = () => {
 
                                       <div className="flex items-center gap-2 shrink-0">
                                         <span className="text-sm font-bold text-primary">
-                                          ₱{item.price}
+                                          {formatCurrency.format(item.price)}
                                         </span>
 
                                         <div className="flex items-center gap-1 bg-secondary rounded-xl px-1 py-0.5">
@@ -676,10 +693,34 @@ const UtangManagementPage = () => {
                                               _id: item._id,
                                               createdAt: item.createdAt,
                                             };
-                                            setSelectedItem((prev) => [
-                                              ...prev,
-                                              selected,
-                                            ]);
+                                            setSelectedItem((prev) => {
+                                              const existingItem = prev.find(
+                                                (old) => old._id === item._id,
+                                              );
+
+                                              if (existingItem) {
+                                                if (
+                                                  existingItem.quantity !==
+                                                  selected.quantity
+                                                ) {
+                                                  toast.success(
+                                                    `Updated ${selected.itemName} quantity to ${selected.quantity}`,
+                                                  );
+
+                                                  return prev.map((old) =>
+                                                    old._id === item._id
+                                                      ? selected
+                                                      : old,
+                                                  );
+                                                }
+
+                                                toast.info(
+                                                  `${selected.itemName} is already in the list`,
+                                                );
+                                                return prev;
+                                              }
+                                              return [...prev, selected];
+                                            });
                                             setItemQuantities((prev) => ({
                                               ...prev,
                                               [item._id]: 1,
@@ -717,7 +758,7 @@ const UtangManagementPage = () => {
                                 </div>
                                 <div className="flex items-center gap-3">
                                   <span className="text-sm font-bold">
-                                    ₱{item.price}
+                                    {formatCurrency.format(item.price)}
                                   </span>
                                   <button
                                     onClick={() =>
@@ -741,11 +782,10 @@ const UtangManagementPage = () => {
                               Initial Total
                             </span>
                             <span className="text-lg font-black text-primary">
-                              ₱
-                              {selectedItem.reduce(
+                              {formatCurrency.format(selectedItem.reduce(
                                 (acc, item) => acc + item.price * item.quantity,
                                 0,
-                              )}
+                              ))}
                             </span>
                           </div>
                         </div>
@@ -755,7 +795,15 @@ const UtangManagementPage = () => {
                         disabled={loading}
                         className="w-full bg-primary text-primary-foreground py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                       >
-                        {loading ? <><Spinner/> <span>Creating Debtor</span></> : <><UserPlus size={24} /> <span>Create Person</span></>}
+                        {loading ? (
+                          <>
+                            <Spinner /> <span>Creating Debtor</span>
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus size={24} /> <span>Create Person</span>
+                          </>
+                        )}
                       </button>
                     </>
                   )}

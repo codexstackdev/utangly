@@ -24,13 +24,18 @@ type ItemDataProps = {
 const ItemCard = ({ itemName, quantity, price, _id, userId }: ItemProps) => {
   const isSoldOut = quantity <= 0;
   const removeItem = setUserStore((s) => s.removeItem);
-  const replaceUser = setUserStore((s) => s.setUser);
+
   const editStateItem = setUserStore((s) => s.editItem);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editPrice, setEditPrice] = useState(price);
   const [editQuantity, setEditQuantity] = useState(quantity);
   const [loading, setLoading] = useState(false);
+  const formatCurrency = new Intl.NumberFormat('en-US', {
+      style: "currency",
+      currency: "PHP",
+      trailingZeroDisplay: 'stripIfInteger'
+    })
 
   const handleDeleteItem = async () => {
     setLoading(true);
@@ -52,7 +57,7 @@ const ItemCard = ({ itemName, quantity, price, _id, userId }: ItemProps) => {
   };
 
   const handleEditItem = async () => {
-    if (editPrice < 0 || editQuantity < 0) {
+    if (editPrice <= 0 || editQuantity <= 0) {
       toast.error("Values cannot be negative");
       return;
     }
@@ -116,7 +121,7 @@ const ItemCard = ({ itemName, quantity, price, _id, userId }: ItemProps) => {
               {itemName}
             </p>
             <div className="flex items-center gap-2 mt-1.5">
-              <p className="text-xs font-bold text-primary">₱{price}</p>
+              <p className="text-xs font-bold text-primary">{formatCurrency.format(price)}</p>
               <span className="text-[10px] text-muted-foreground">•</span>
               <p
                 className={`text-[10px] font-bold ${isSoldOut ? "text-rose-500" : "text-muted-foreground"}`}
@@ -193,7 +198,7 @@ const ItemCard = ({ itemName, quantity, price, _id, userId }: ItemProps) => {
                     Price (₱)
                   </label>
                   <input
-                    type="number"
+                    type="string"
                     value={editPrice}
                     onChange={(e) => setEditPrice(Number(e.target.value) | 1)}
                     className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
@@ -204,7 +209,7 @@ const ItemCard = ({ itemName, quantity, price, _id, userId }: ItemProps) => {
                     Quantity
                   </label>
                   <input
-                    type="number"
+                    type="string"
                     value={editQuantity}
                     onChange={(e) => setEditQuantity(Number(e.target.value) | 1)}
                     className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"

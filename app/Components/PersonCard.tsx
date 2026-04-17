@@ -22,6 +22,12 @@ type HistoryProps = {
   createdAt: string;
 };
 
+const formatCurrency = new Intl.NumberFormat('en-US', {
+      style: "currency",
+      currency: "PHP",
+      trailingZeroDisplay: 'stripIfInteger'
+    })
+
 export const PersonCard = ({
   name,
   totalDebt,
@@ -80,7 +86,7 @@ export const PersonCard = ({
                   isPaid ? "text-emerald-600" : "text-rose-500"
                 }`}
               >
-                {isPaid ? "Fully Settled" : `₱${totalDebt}`}
+                {isPaid ? "Fully Settled" : `${formatCurrency.format(totalDebt)}`}
               </p>
             </div>
           </div>
@@ -122,7 +128,7 @@ export const PersonCard = ({
                   <p
                     className={`text-sm font-bold ${isPaid ? "text-muted-foreground" : ""}`}
                   >
-                    ₱{item.price}
+                    {formatCurrency.format(item.price)}
                   </p>
                 </div>
               ))
@@ -165,7 +171,6 @@ export const PersonCard = ({
         </div>
       </motion.div>
 
-      {/* HISTORY MODAL */}
       <AnimatePresence>
         {isHistoryOpen && (
           <motion.div
@@ -183,7 +188,6 @@ export const PersonCard = ({
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-md bg-card border border-border rounded-[2.5rem] shadow-2xl overflow-hidden"
             >
-              {/* Header */}
               <div className="p-6 pb-0 flex items-start justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
@@ -204,7 +208,6 @@ export const PersonCard = ({
                 </button>
               </div>
 
-              {/* Summary */}
               <div className="px-6 pt-5">
                 <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-2xl border border-border/50">
                   <div>
@@ -220,15 +223,13 @@ export const PersonCard = ({
                       Amount Paid
                     </p>
                     <p className="text-2xl font-black text-emerald-600 mt-0.5">
-                      ₱
-                      {history
-                        .reduce((sum, h) => sum + h.amountPaid, 0)}
+                      {formatCurrency.format(history
+                        .reduce((sum, h) => sum + h.amountPaid, 0))}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* History List */}
               <div className="p-6 max-h-72 overflow-y-auto custom-scrollbar">
                 {history.length > 0 ? (
                   <div className="space-y-3">
@@ -261,7 +262,7 @@ export const PersonCard = ({
                           </div>
                         </div>
                         <p className="text-sm font-black text-emerald-600">
-                          +₱{entry.amountPaid}
+                          +{formatCurrency.format(entry.amountPaid)}
                         </p>
                       </motion.div>
                     ))}
@@ -279,7 +280,6 @@ export const PersonCard = ({
                 )}
               </div>
 
-              {/* Footer */}
               <div className="p-5 border-t border-border">
                 <button
                   onClick={() => setIsHistoryOpen(false)}
@@ -339,7 +339,7 @@ export const ItemCard = ({
           </p>
           <div className="flex items-center gap-2 mt-1.5">
             <p className="text-xs font-bold text-primary">
-              ₱{price}
+              {formatCurrency.format(price)}
             </p>
             <span className="text-[10px] text-muted-foreground">•</span>
             <p

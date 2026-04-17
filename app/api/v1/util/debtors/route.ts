@@ -1,4 +1,5 @@
 import debtorModel from "@/app/Models/debtorSchema";
+import itemModel from "@/app/Models/itemSchema";
 import userModel from "@/app/Models/userSchema";
 import { connectDB } from "@/app/lib/connect";
 import { jwtVerify } from "jose";
@@ -7,6 +8,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 const ALLOWEDORIGIN =
   process.env.NODE_ENV === "development" ? "http://localhost:3000" : "";
+
+type ItemProps = {
+  itemName: string;
+  quantity: number;
+  price: number;
+  _id: string;
+  createdAt: string;
+};
 
 export async function POST(req: NextRequest) {
   const origin = req.headers.get("origin");
@@ -40,6 +49,7 @@ export async function POST(req: NextRequest) {
         {$push: {debtors: debtor._id}},
         {new:true}
       );
+      await updateStock(items);
       return NextResponse.json(
         { success: true, message: "Debtor added successfully", debtorId: debtor._id},
         { status: 200 },
@@ -51,6 +61,7 @@ export async function POST(req: NextRequest) {
         {$push: {debtors: debtor._id}},
         {new:true}
       );
+      await updateStock(items);
       return NextResponse.json(
         { success: true, message: "Debtor added successfully", debtorId: debtor._id},
         { status: 200 },
@@ -61,3 +72,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, message: err }, { status: 500 });
   }
 }
+
+const updateStock = async (selectedItems:ItemProps[]) => {
+  try {
+    const updatePromises = selectedItems.map(async (item) => {
+      return await itemModel.findByIdAndUpdate(
+        item._id,
+        { $inc: { quantity: - item.quantity } }, 
+        { returnDocument: "after" }
+      );
+    });
+
+    const results = await Promise.all(updatePromises);
+    return results;
+  } catch (error) {
+    console.error("Stock update failed", error);
+  }
+};
